@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thapar Campus Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f1f4ee;--card:#fff;--ink:#1d2b22;--mute:#5f6e64;--line:#d6ddd3;--grass:#cfe4b8;--road:#8c9690;--route:#e4572e;--accent:#1d2b22;--onaccent:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a15;--card:#1b2820;--ink:#e6efe8;--mute:#9aae9f;--line:#2d4034;--grass:#25382a;--road:#5c6a62;--route:#ff7a55;--accent:#e6efe8;--onaccent:#121a15;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121a15;--card:#1b2820;--ink:#e6efe8;--mute:#9aae9f;--line:#2d4034;--grass:#25382a;--road:#5c6a62;--route:#ff7a55;--accent:#e6efe8;--onaccent:#121a15;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.4}
+main{max-width:980px;margin:0 auto;padding:18px 14px 50px}
+h1{font-size:clamp(1.9rem,6vw,2.8rem);font-weight:800;letter-spacing:-.03em;line-height:1;margin:6px 0 4px}
+.sub{color:var(--mute);margin:0 0 14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.pick{grid-template-columns:1fr}}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:3px}
+select,button{font:inherit;color:var(--ink)}
+select{width:100%;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.go,.sm{border:0;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--onaccent)}
+.sm{background:var(--bg);color:var(--ink);border:1.5px solid var(--line);padding:7px 12px}
+button:focus-visible,select:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+#res{margin:0;font-size:.95rem}
+#res b{font-size:1.25rem}
+.mapwrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--grass);height:min(64vh,520px);-webkit-overflow-scrolling:touch}
+svg{display:block;width:1100px;height:auto}
+.rd{stroke:var(--road);stroke-linecap:round;stroke-linejoin:round;fill:none}
+.pl{cursor:pointer}
+.pl text{font-size:11.5px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--grass);stroke-width:3px;pointer-events:none}
+.pl circle{stroke:var(--card);stroke-width:2.5}
+#path{fill:none;stroke:var(--route);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 12}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.82rem;color:var(--mute);margin:10px 2px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.note{color:var(--mute);font-size:.82rem}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body><main>
+<h1>Thapar Campus Guide</h1>
+<p class="sub">Pick where you are and where you want to go. The route follows campus roads.</p>
+<div class="panel">
+<div class="pick">
+<div><label for="from">From</label><select id="from"></select></div>
+<div><label for="to">To</label><select id="to"></select></div>
+</div>
+<div class="btns"><button class="go" id="go">Show route</button><button class="sm" id="swap">Swap</button>
+<button class="sm" id="zi" aria-label="Zoom in">Zoom +</button><button class="sm" id="zo" aria-label="Zoom out">Zoom -</button></div>
+<p id="res" style="margin-top:10px">Tap a building on the map to set it as your destination.</p>
+</div>
+<div class="mapwrap" id="mw" tabindex="0" aria-label="Campus map, scrollable">
+<svg id="svg" viewBox="0 0 1280 720" role="img" aria-label="Schematic map of the Thapar campus">
+<g id="roads"></g><path id="path" d=""/><g id="places"></g>
+</svg></div>
+<div class="legend" id="lg"></div>
+<p class="note">Schematic map redrawn from the official campus map, turned upright. Distances and times are rough estimates (about 80 m per minute on foot).</p>
+</main>
+<script>
+var C={g:["Gate","#e4572e"],a:["Academic","#2f6fd0"],h:["Hostel","#a23f9d"],f:["Food and shops","#e9a23b"],s:["Sports","#1b9c6b"],o:["Services","#5f6e64"]};
+var P=[
+["Main Entrance",1220,635,"g"],["TSLAS Gate",1190,270,"g"],["Polytechnic Gate",650,35,"g"],
+["Directorate",970,545,"a"],["Main Auditorium",910,615,"o"],["CILP",920,560,"a"],["B Block",925,505,"a"],["C Block",925,470,"a"],["D Block",910,435,"a"],
+["E Block",1050,485,"a"],["F Block",1050,450,"a"],["H Block",1075,515,"a"],["G Block",800,475,"a"],["Library",880,385,"a"],["LT",840,350,"a"],["CS Block",830,290,"a"],
+["LP 101-103",805,395,"a"],["LP 110-111",910,295,"a"],["Venture Lab",965,250,"a"],["TSLAS",1070,250,"a"],["Mechanical Workshop",1010,385,"a"],["ELC Building",1125,390,"a"],
+["Parking",1035,550,"o"],["Dean Officer / Visitors",940,320,"o"],["Health Centre",830,210,"o"],["Staff Quarters",790,155,"o"],["Polytechnic College",780,85,"a"],
+["Canteen",805,525,"f"],["Ahar",1008,520,"f"],["Kravings",640,450,"f"],["Waterbody Cafe",910,355,"f"],
+["Central Park",550,480,"o"],["Sports Complex",560,320,"s"],["Cricket Field",400,210,"s"],["Synthetic Track",230,355,"s"],["Tennis Court",490,290,"s"],
+["Hostel A (Agira)",455,580,"h"],["Hostel B (Amritam)",370,580,"h"],["Hostel C (Prithvi)",190,580,"h"],["Hostel D (Neeram)",110,600,"h"],["Hostel O (Vyom)",280,590,"h"],
+["Hostel H (Vyan)",455,480,"h"],["Hostel J (Tejas)",375,490,"h"],["Hostel M (Anantam)",180,490,"h"],["Hostel K (Ambaram)",435,90,"h"],["Hostel L (Viyat)",660,90,"h"],
+["Hostel G (Vasudha)",655,380,"h"],["Hostel E",650,315,"h"],["Hostel N (Ananta)",740,365,"h"],["Hostel I (Ira)",740,320,"h"],["TAN",752,462,"a"],["PG Hostels (Q, PG-1, PG-2)",580,570,"h"],["F.R. Blocks",90,230,"h"]];
+var R=[[[30,645],[510,645],[1170,645]],[[30,420],[510,420],[1170,420]],[[510,35],[510,260],[510,420],[510,645]],[[1170,260],[1170,420],[1170,645]],[[170,35],[510,35],[650,35]],[[870,645],[870,420]],[[510,260],[1170,260]],[[1170,645],[1220,635]],[[1170,260],[1190,270]]];
+var NS=document.getElementById("svg").namespaceURI;
+function el(t,a,p){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function proj(p,a,b){var dx=b[0]-a[0],dy=b[1]-a[1],t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy);t=Math.max(0,Math.min(1,t));return[a[0]+t*dx,a[1]+t*dy,t]}
+function d(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])}
+var N=[],E=[],key={};
+function node(x,y){var k=Math.round(x)+","+Math.round(y);if(key[k]===undefined){key[k]=N.length;N.push([x,y]);E.push([])}return key[k]}
+function link(a,b){var w=d(N[a],N[b]);E[a].push([b,w]);E[b].push([a,w])}
+var segs=[];R.forEach(function(r){for(var i=0;i<r.length-1;i++)segs.push({a:r[i],b:r[i+1],pts:[{t:0,p:r[i]},{t:1,p:r[i+1]}]})});
+var pn=P.map(function(p){var best=null;segs.forEach(function(s){var q=proj(p.slice(1,3),s.a,s.b),dd=d(q,p.slice(1,3));if(!best||dd<best.d)best={d:dd,s:s,q:q}});best.s.pts.push({t:best.q[2],p:[best.q[0],best.q[1]]});return best});
+segs.forEach(function(s){s.pts.sort(function(u,v){return u.t-v.t});for(var i=0;i<s.pts.length-1;i++)link(node(s.pts[i].p[0],s.pts[i].p[1]),node(s.pts[i+1].p[0],s.pts[i+1].p[1]))});
+var pid=P.map(function(p,i){var n=node(p[1],p[2]);link(n,node(pn[i].q[0],pn[i].q[1]));return n});
+var g=document.getElementById("roads");
+R.forEach(function(r){var s=r.map(function(q){return q.join(",")}).join(" ");el("polyline",{points:s,class:"rd",style:"stroke-width:22;opacity:.55"},g);el("polyline",{points:s,class:"rd",style:"stroke-width:3;stroke:var(--card);stroke-dasharray:10 10;opacity:.8"},g)});
+var pg=document.getElementById("places"),from=document.getElementById("from"),to=document.getElementById("to");
+P.forEach(function(p,i){var gr=el("g",{class:"pl",tabindex:0,role:"button","aria-label":p[0],"data-i":i},pg);el("circle",{cx:p[1],cy:p[2],r:p[3]=="g"?9:6.5,fill:C[p[3]][1]},gr);var t=el("text",{x:p[1]+10,y:p[2]+4},gr);t.textContent=p[0];
+[from,to].forEach(function(s){var o=document.createElement("option");o.value=i;o.textContent=p[0];s.appendChild(o)})});
+from.value=0;to.value=P.findIndex(function(p){return p[0]=="Library"});
+document.getElementById("lg").innerHTML=Object.keys(C).map(function(k){return '<span><i style="background:'+C[k][1]+'"></i>'+C[k][0]+'</span>'}).join("");
+function route(a,b){var D=N.map(function(){return 1e9}),V=N.map(function(){return -1}),done={};D[a]=0;
+for(;;){var u=-1;for(var i=0;i<N.length;i++)if(!done[i]&&D[i]<1e9&&(u<0||D[i]<D[u]))u=i;if(u<0||u==b)break;done[u]=1;E[u].forEach(function(e){if(D[u]+e[1]<D[e[0]]){D[e[0]]=D[u]+e[1];V[e[0]]=u}})}
+var p=[],c=b;while(c>=0){p.unshift(c);c=V[c]}return{p:p,len:D[b]}}
+function show(){var a=+from.value,b=+to.value,res=document.getElementById("res"),path=document.getElementById("path");
+if(a==b){path.setAttribute("d","");res.textContent="You are already there. Pick a different destination.";return}
+var r=route(pid[a],pid[b]),pts=r.p.map(function(i){return N[i]});
+path.setAttribute("d","M"+pts.map(function(q){return q[0]+","+q[1]}).join("L"));
+var m=Math.round(r.len*1.3),min=Math.max(1,Math.round(m/80));
+var near=P.filter(function(p,i){return i!=a&&i!=b&&pts.some(function(q){return d(q,[p[1],p[2]])<35})}).slice(0,4).map(function(p){return p[0]});
+res.innerHTML="<b>"+min+" min walk</b> (about "+m+" m) from "+P[a][0]+" to "+P[b][0]+"."+(near.length?"<br>You will pass: "+near.join(", ")+".":"");
+var mw=document.getElementById("mw"),sc=mw.firstElementChild.getBoundingClientRect().width/1280,cx=(P[a][1]+P[b][1])/2*sc,cy=(P[a][2]+P[b][2])/2*sc;
+mw.scrollTo({left:cx-mw.clientWidth/2,top:cy-mw.clientHeight/2,behavior:"smooth"})}
+document.getElementById("go").onclick=show;
+document.getElementById("swap").onclick=function(){var t=from.value;from.value=to.value;to.value=t;show()};
+var w=1100;function zoom(f){w=Math.max(700,Math.min(2400,w*f));document.getElementById("svg").style.width=w+"px"}
+document.getElementById("zi").onclick=function(){zoom(1.25)};document.getElementById("zo").onclick=function(){zoom(.8)};
+function pick(e){var t=e.target.closest(".pl");if(!t)return;to.value=t.getAttribute("data-i");show()}
+pg.addEventListener("click",pick);pg.addEventListener("keydown",function(e){if(e.key=="Enter"||e.key==" "){e.preventDefault();pick(e)}});
+from.onchange=to.onchange=show;
+show();
+</script></body></html>
